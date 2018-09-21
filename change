@@ -1,0 +1,369 @@
+```
+#include<stdio.h>
+#include<string.h>
+#define n 50
+#define maxval 100
+typedef struct{
+	char c;
+	int times;
+	int repeat;
+}Pro;
+Pro message[n];
+ 
+typedef struct{ //因为二叉树的特点所定义的哈夫曼树结构应该包含四个信息 
+	int weight;  //所在结点的权值 
+	int parent,lchild,rchild;  //所在结点的左儿子右儿子以及父结点所在数组的下标 
+	char trc;  //权值对应的字符 
+}hufmtree;
+hufmtree tree[n]; 
+
+typedef struct{
+	int bits[n];  //n为哈夫曼的树中叶子结点的数目，编码的长度不可能超过n；
+	int start;
+	char ch;  //与编码对应的字符
+}Codetype;
+Codetype code[n]; //有n个字符的编码 
+void menu();  
+void Input(char str[]);
+void Huffman(hufmtree tree[],Pro message[]); //生成哈夫曼树 
+void HuffmanCode(hufmtree tree[],char str[]); //利用哈夫曼树生成哈夫曼结点 
+
+
+int main(){
+	char str[n];
+	int count = 0,i; 
+	menu();
+	while(1)
+	{
+		if(count == 0)
+		{
+			printf("\n		请输入您的选择：");	count = 1;
+		}
+		else
+		{
+			printf("\n		请再次输入您的选择：");	
+		}
+		scanf("%d",&i);
+		switch(i)
+		{
+			case 1:
+			{
+				printf("\n		请输入所要编码的原文："); 
+				scanf("%s",str);
+				//printf("----------------------------------------------------------------------------------------\n");
+				Input(str);
+				printf("\t\t-------------------------------------------------------------\n");
+				Huffman(tree,message);
+				HuffmanCode(tree,str);
+				break;
+			}	
+		}
+	}
+	return 0;
+}
+
+
+
+
+
+void menu(){
+	printf("		\t|___________________________________|\t\n");
+    printf("		\t|                                   |\t\n");
+    printf("		\t|      哈夫曼的编码与解码           |\t\n");
+    printf("		\t|___________________________________|\t\n");
+    printf("		\t|                                   |\t\n");
+    printf("		\t| 有如下操作，请输入操作之前的数字  |\t\n");
+	printf("		\t|___________________________________|\t\n");
+    printf("		\t|                                   |\t\n");
+    printf("		\t|      ①我要编码                   |\t\n");
+    printf("		\t|                                   |\t\n");
+    printf("		\t|      ②我要解码                   |\t\n");
+    printf("		\t|___________________________________|\t\n");
+    printf("		\t|                                   |\t\n");
+    printf("		\t|Ctrl+C结束该程序！！！             |\t\n");
+    printf("		\t|___________________________________|\t\n");
+}  
+void Input(char str[]){ 
+	int i,j,k,len; 
+	len = strlen(str);
+	for(i = 0;i < len;i++)
+	{
+		message[i].c = str[i];
+		message[i].times = 1;
+		message[i].repeat = 0;  //repeat来记录该字符是否重复出现过 没有为 0，有为 1 
+	}
+	for(i = 0;i < len;i++)
+	{
+		if(message[i].repeat == 1) continue;
+		else
+		{
+			for(j = i+1;j < len;j++)
+			{
+				if(message[i].c == message[j].c)
+				{
+					message[i].repeat = message[j].repeat = 1; 
+				} 
+			}//此循环将重复出现的字符的repeat标记为1 
+		}
+	}
+	for(i = 0;i < len;i++)
+	{
+		if(message[i].repeat == 0)
+		{
+			printf("\n\t		输入语句中字符 %c 出现的次数为:1\t\n ",message[i].c);
+		}
+		else if(message[i].repeat == 1)
+		{
+			for(j = i+1;j < len;j++)
+			{
+				if(message[i].c == message[j].c)
+				{
+					message[i].times ++;
+					message[j].repeat = -1;//计算次数之后将其repeat重新赋值，便于输出操作 
+				}
+			}
+		}
+		else if(message[i].repeat == -1) continue;
+	}
+	for(i = 0;i < len;i++)
+	{
+		if(message[i].repeat == 1)
+		{
+			printf("\n\t		输入语句中的字符 %c 出现的次数为:%d\t\n",message[i].c,message[i].times);
+		}
+	}
+}
+
+void Huffman(hufmtree tree[],Pro message[]){
+	int i,j,m = 100,k = 0,kk,p1,p2;
+	int mid,cb,cir;
+	char cmid;
+	for(i = 0;i < m;i++)
+	{
+		tree[i].lchild = 0;
+		tree[i].parent = 0;
+		tree[i].rchild = 0; 
+		tree[i].weight = 0;
+	}
+	for(i = 0;i < n;i++)
+	{
+		//此循环用于给哈夫曼树各子叶赋权值 
+		if(message[k].repeat != -1)
+		{
+			tree[i].weight = message[k].times;
+			tree[i].trc = message[k].c;
+			k++; 
+		}
+		else
+		{
+			k++;
+			i--;
+		 } 
+	}
+	k = 0,i = 0;
+	while(tree[i].trc)
+	{
+		k++;
+		i++; 
+	}
+	kk = k;
+	m = 2*kk-1;
+	cir = 0;
+	for(cb = kk; cb < m; cb++)//控制总的合并次数 
+	{
+		for(i = cir; i < k; i++)
+		{
+			for(j = i+1; j < k; j++)
+			{
+				if(tree[i].weight > tree[j].weight)
+				{
+					mid = tree[i].weight;  cmid = tree[i].trc;
+					tree[i].weight = tree[j].weight; tree[i].trc = tree[j].trc;
+					tree[j].weight = mid;  tree[j].trc = cmid;
+				}
+			}
+		}
+		tree[k].weight = tree[cir].weight + tree[cir+1].weight;
+		tree[k].lchild = cir; tree[k].rchild = cir+1;
+		tree[cir].parent = tree[cir+1].parent = k;
+		cir = cir + 2; k++;
+	}
+	/*
+	for(i = 0; i < k; i++)
+	{
+		printf("\t%d",tree[i].weight);
+	}
+	printf("\n");
+	for(i = 0; i < k; i++)
+	{
+		printf("\t%c",tree[i].trc);
+	}
+	*/
+	/*for(i = 0; i < 2*k-1; i++)
+	{
+		if(tree[i].lchild==0 && tree[i].rchild==0)
+		{
+			printf("%c   ",tree[i].trc);
+		}
+		//aabcdef
+	}*/
+}
+
+//此函数用来生成每个字符所对应的哈夫曼编码 
+void HuffmanCode(hufmtree tree[],char str[])
+{
+	int i,j,p,k,m,len,pp;
+	//------------
+	k = 0,i = 0;
+	len = strlen(str);
+	while(tree[i].trc)
+	{
+		k++;
+		i++;
+	}
+	m = 2*k-1;
+	//------ 上一个函数中的重复代码
+	j = 0;
+	int x;
+	for(i = 0;i < k;i++)
+	{
+		if(tree[i].lchild==0 && tree[i].rchild==0)
+		{
+			code[j].start = k;
+			m = i;
+			p = tree[i].parent;
+			while(p!=0)
+			{
+				if(tree[p].lchild == m) 
+					code[j].bits[k-1] = 0;
+				else if(tree[p].rchild == m)
+					code[j].bits[k-1] = 1;
+				//printf("%c",code[j].bits[k-1]);
+				code[j].start--;
+				m = p;
+				p = tree[p].parent;
+			}
+			code[j].ch = tree[i].trc;
+		}
+	}
+	printf("\n\t\t原文的哈夫曼编码为："); 
+	for(i = 0; i < len; i++)
+	{
+		for(p = 0; p <= j; p++)
+		{
+			if(code[p].ch == str[i])
+			{
+				for(pp = code[p].start; pp < k; pp++)
+				{
+					printf("%d",code[p].bits[pp]);
+				}
+				printf("\n");
+			} 
+		}
+	}
+ }
+ 
+void trans(Codetype code[])
+{
+	int len,i;
+	int tran[n]; 
+	int ts[n];
+	printf("请输入编码的长度：")
+	scanf("%d",&len) 
+	printf("\n请输入编码：")
+	for(i = 0; i < len; i++)
+	{
+		scanf("%d",&tran[i]);
+		for(j = 0;j < len;j++)
+		{
+			for(p = 0; p < number;p++)
+			{
+				for(pp = code[p].start; p < k;p++)
+				{
+					if(tran[j] == code[p].bits[pp]){
+						//解码 文件3 
+					}
+				}
+				
+			}
+			
+		}
+		
+	}
+	 
+}  
+
+
+---------------------
+
+/*
+int i,j,m,k = 0,p1,p2;
+	int small1,small2,f;
+	for(i = 0;i < m;i++)
+	{
+		tree[i].lchild = 0;
+		tree[i].parent = 0;
+		tree[i].rchild = 0; 
+		tree[i].weight = 0;
+	}
+	for(i = 0;i < n;i++)
+	{
+		//此循环用于给哈夫曼树各子叶赋权值 
+		if(message[k].repeat != -1)
+		{
+			tree[i].weight = message[k].times;
+			tree[i].trc = message[k].c;
+			k++; 
+		}
+		else
+		{
+			k++;
+			i--;
+		 } 
+	}
+	k = 0,i = 0;
+	while(tree[i].trc)
+	{
+		k++;
+		i++; 
+	}
+	printf("\n\t\t\tk的值为%d\n",k); 
+	m = 2*k-1;
+	//这里并没有采用排序的方式， 
+	for(i = k;i < m;i++) //进行k-1次合并 
+	{
+		//p1,p2每次用来记录俩孩子的下标 
+		p1 = p2 = 0;
+		//small1为最小值 small2为次小值 
+		small1 = small2 = maxval;
+		for(j = 0;j <= i-1;j++)
+		{
+			if(tree[j].parent == 0)
+			{
+				if(tree[j].weight < small1)
+				{
+					small2 = small1;
+					small1 = tree[j].weight;
+					p2 = p1;
+					p1 = j;  
+				}
+				else if(tree[j].weight < small2)
+				{
+					small2 = tree[j].weight;
+					p2 = j;
+				}
+				tree[p1].parent = tree[p2].parent = i;
+				tree[i].weight = tree[p1].weight + tree[p2].weight; 
+				tree[i].lchild = p1;
+				tree[i].rchild = p2;
+			}
+			
+		}
+		printf("\t\t\t%d i\n",tree[i].weight); 
+	}
+	for(i = 0; i < k; i++)
+	{
+		printf("  %d   ",tree[i].weight);
+	 } 
+*/
+```
